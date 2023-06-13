@@ -7,9 +7,22 @@
 #include <map>
 #include <iostream>
 
-float bpm = 140.0f;
-float beatLength = 60.0f / bpm;
-int trackLength = 16;
+class Sample;
+
+class Instance
+{
+public:
+    Sample* sample;
+    Sound sound;
+    int startBeat;
+
+    Instance(Sample* sample, Sound sound, int startBeat)
+    {
+        this->sample = sample;
+        this->sound = sound;
+        this->startBeat = startBeat;
+    }
+};
 
 class Sample
 {
@@ -23,6 +36,11 @@ public:
         this->path = path;
         this->name = GetFileName(path.c_str());
         this->wave = LoadWave(path.c_str());
+    }
+
+    Instance instance(int startBeat)
+    {
+        return Instance(this, LoadSoundFromWave(wave), startBeat);
     }
 };
 
@@ -38,29 +56,57 @@ int main()
 
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-    std::map<std::string, Wave> samples;
+    std::vector<Sample> samples;
 
-    Wave wave = LoadWave("assets/Melody Loops/Drill_Essentials_Apogee_140bpm_C#m.wav");
-    samples["assets/Melody Loops/Drill_Essentials_Apogee_140bpm_C#m.wav"] = wave;
+    Sample sample1("assets/Melody Loops/Drill_Essentials_Apogee_140bpm_C#m.wav");
+    samples.push_back(sample1);
 
-    Wave wave2 = LoadWave("assets/Melody Loops/Drill_Essentials_Balance_140bpm_Gm.wav");
-    samples["assets/Melody Loops/Drill_Essentials_Balance_140bpm_Gm.wav"] = wave2;
-
-    Wave mixedWave = mixWaveFiles(wave, wave2);
-    samples["mixed"] = mixedWave;
+    Sample sample2("assets/Melody Loops/Drill_Essentials_Balance_140bpm_Gm.wav");
+    samples.push_back(sample2);
 
     Sound metronome = LoadSound("assets/metronome.mp3");
 
-    float time = 0.0f;
+    float bpm = 140.0f;
+    float beatLength = 60.0f / bpm;
+    int trackLength = 16;
+
+    bool playing = false;
+    float currentTime = 0.0f;
+    int currentBeat = 0;
+
+    std::vector<Instance> instances;
 
     while (!WindowShouldClose())
     {
-        time += GetFrameTime();
-
-        if (time >= beatLength)
+        if (playing)
         {
-            PlaySound(metronome);
-            time = 0.0f;
+            currentTime += GetFrameTime();
+
+            if (currentTime >= beatLength)
+            {
+                currentTime -= beatLength;
+                currentBeat++;
+
+                if (currentBeat >= trackLength)
+                {
+                    currentBeat = 0;
+
+                    for (auto& instance : instances)
+                    {
+                        StopSound(instance.sound);
+                    }
+                }
+
+                PlaySound(metronome);
+            }
+
+            for (auto& instance : instances)
+            {
+                if (instance.startBeat == currentBeat && !IsSoundPlaying(instance.sound))
+                {
+                    PlaySound(instance.sound);
+                }
+            }
         }
 
         if (IsFileDropped())
@@ -71,8 +117,7 @@ int main()
             {
                 if (IsFileExtension(droppedFiles.paths[i], ".wav"))
                 {
-                    Wave wave = LoadWave(droppedFiles.paths[i]);
-                    samples[droppedFiles.paths[i]] = wave;
+                    samples.push_back(Sample(droppedFiles.paths[i]));
                 }
             }
 
@@ -91,10 +136,9 @@ int main()
 
         for (auto& sample : samples)
         {
-            if (ImGui::Button(sample.first.c_str()))
+            if (ImGui::Button(sample.name.c_str()))
             {
-                Sound sound = LoadSoundFromWave(sample.second);
-                PlaySound(sound);
+                instances.push_back(sample.instance(currentBeat));
             }
         }
 
@@ -105,6 +149,91 @@ int main()
         ImGui::SliderFloat("BPM", &bpm, 0.0f, 300.0f);
 
         beatLength = 60.0f / bpm;
+
+        ImGui::End();
+
+        ImGui::Begin("Track");
+
+        ImGui::SliderInt("Track Length", &trackLength, 1, 64);
+
+        if (ImGui::Button(ICON_FA_PLAY))
+        {
+            playing = true;
+
+            for (auto& instance : instances)
+            {
+                PlaySound(instance.sound);
+            }
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button(ICON_FA_PAUSE))
+        {
+            playing = false;
+
+            for (auto& instance : instances)
+            {
+                PauseSound(instance.sound);
+            }
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button(ICON_FA_STOP))
+        {
+            playing = false;
+            currentTime = 0.0f;
+            currentBeat = 0;
+
+            for (auto& instance : instances)
+            {
+                StopSound(instance.sound);
+            }
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button(ICON_FA_FORWARD))
+        {
+            currentBeat++;
+            currentTime = currentBeat * beatLength;
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button(ICON_FA_BACKWARD))
+        {
+            currentBeat--;
+            currentTime = currentBeat * beatLength;
+        }
+
+        ImGui::Text("Current Beat: %i", currentBeat);
+
+        for (auto& instance : instances)
+        {
+            ImGui::Text("%s", instance.sample->name.c_str());
+
+            ImGui::SameLine();
+
+            ImGui::Text("%i", instance.startBeat);
+
+            ImGui::SameLine();
+
+            if (ImGui::Button(ICON_FA_TRASH))
+            {
+                StopSound(instance.sound);
+
+                for (unsigned int i = 0; i < instances.size(); i++)
+                {
+                    if (instances[i].sample == instance.sample && instances[i].startBeat == instance.startBeat)
+                    {
+                        instances.erase(instances.begin() + i);
+                        break;
+                    }
+                }
+            }
+        }
 
         ImGui::End();
 
