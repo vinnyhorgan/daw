@@ -8,7 +8,7 @@ IMGUI_DIR=libs/imgui
 SOURCES=$(wildcard $(SRCDIR)/*.cpp $(IMGUI_DIR)/*.cpp)
 OBJECTS=$(SOURCES:.cpp=.o)
 
-EXECUTABLE=wad
+EXECUTABLE=daw
 
 .PHONY: all clean
 

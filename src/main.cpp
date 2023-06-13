@@ -9,99 +9,27 @@
 
 float bpm = 140.0f;
 float beatLength = 60.0f / bpm;
+int trackLength = 16;
 
-Wave mixWaveFiles(Wave wave1, Wave wave2)
+class Sample
 {
-    Wave mixedWave = {};
-    mixedWave.sampleRate = wave1.sampleRate;
-    mixedWave.sampleSize = wave1.sampleSize;
-    mixedWave.channels = wave1.channels;
+public:
+    std::string name;
+    std::string path;
+    Wave wave;
 
-    if (wave1.frameCount > wave2.frameCount)
+    Sample(std::string path)
     {
-        mixedWave.frameCount = wave1.frameCount;
+        this->path = path;
+        this->name = GetFileName(path.c_str());
+        this->wave = LoadWave(path.c_str());
     }
-    else
-    {
-        mixedWave.frameCount = wave2.frameCount;
-    }
-
-    mixedWave.data = (void*)malloc(mixedWave.frameCount * mixedWave.channels * mixedWave.sampleSize / 8);
-
-    for (unsigned int i = 0; i < mixedWave.frameCount; i++)
-    {
-        for (unsigned int j = 0; j < mixedWave.channels; j++)
-        {
-            switch (mixedWave.sampleSize)
-            {
-                case 32:
-                {
-                    float sample1 = 0.0f;
-                    float sample2 = 0.0f;
-
-                    if (i < wave1.frameCount)
-                    {
-                        sample1 = ((float*)wave1.data)[i * wave1.channels + j];
-                    }
-
-                    if (i < wave2.frameCount)
-                    {
-                        sample2 = ((float*)wave2.data)[i * wave2.channels + j];
-                    }
-
-                    ((float*)mixedWave.data)[i * mixedWave.channels + j] = sample1 + sample2;
-
-                    break;
-                }
-                case 16:
-                {
-                    short sample1 = 0;
-                    short sample2 = 0;
-
-                    if (i < wave1.frameCount)
-                    {
-                        sample1 = ((short*)wave1.data)[i * wave1.channels + j];
-                    }
-
-                    if (i < wave2.frameCount)
-                    {
-                        sample2 = ((short*)wave2.data)[i * wave2.channels + j];
-                    }
-
-                    ((short*)mixedWave.data)[i * mixedWave.channels + j] = sample1 + sample2;
-
-                    break;
-                }
-                case 8:
-                {
-                    unsigned char sample1 = 0;
-                    unsigned char sample2 = 0;
-
-                    if (i < wave1.frameCount)
-                    {
-                        sample1 = ((unsigned char*)wave1.data)[i * wave1.channels + j];
-                    }
-
-                    if (i < wave2.frameCount)
-                    {
-                        sample2 = ((unsigned char*)wave2.data)[i * wave2.channels + j];
-                    }
-
-                    ((unsigned char*)mixedWave.data)[i * mixedWave.channels + j] = sample1 + sample2;
-
-                    break;
-                }
-            }
-        }
-    }
-
-    return mixedWave;
-}
+};
 
 int main()
 {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-    InitWindow(800, 600, "WAD by Vinny Horgan");
+    InitWindow(800, 600, "DAW by Vinny Horgan");
     SetTargetFPS(60);
 
     InitAudioDevice();
@@ -192,4 +120,92 @@ int main()
     CloseWindow();
 
     return 0;
+}
+
+Wave mixWaveFiles(Wave wave1, Wave wave2)
+{
+    Wave mixedWave = {};
+    mixedWave.sampleRate = wave1.sampleRate;
+    mixedWave.sampleSize = wave1.sampleSize;
+    mixedWave.channels = wave1.channels;
+
+    if (wave1.frameCount > wave2.frameCount)
+    {
+        mixedWave.frameCount = wave1.frameCount;
+    }
+    else
+    {
+        mixedWave.frameCount = wave2.frameCount;
+    }
+
+    mixedWave.data = (void*)malloc(mixedWave.frameCount * mixedWave.channels * mixedWave.sampleSize / 8);
+
+    for (unsigned int i = 0; i < mixedWave.frameCount; i++)
+    {
+        for (unsigned int j = 0; j < mixedWave.channels; j++)
+        {
+            switch (mixedWave.sampleSize)
+            {
+                case 32:
+                {
+                    float sample1 = 0.0f;
+                    float sample2 = 0.0f;
+
+                    if (i < wave1.frameCount)
+                    {
+                        sample1 = ((float*)wave1.data)[i * wave1.channels + j];
+                    }
+
+                    if (i < wave2.frameCount)
+                    {
+                        sample2 = ((float*)wave2.data)[i * wave2.channels + j];
+                    }
+
+                    ((float*)mixedWave.data)[i * mixedWave.channels + j] = sample1 + sample2;
+
+                    break;
+                }
+                case 16:
+                {
+                    short sample1 = 0;
+                    short sample2 = 0;
+
+                    if (i < wave1.frameCount)
+                    {
+                        sample1 = ((short*)wave1.data)[i * wave1.channels + j];
+                    }
+
+                    if (i < wave2.frameCount)
+                    {
+                        sample2 = ((short*)wave2.data)[i * wave2.channels + j];
+                    }
+
+                    ((short*)mixedWave.data)[i * mixedWave.channels + j] = sample1 + sample2;
+
+                    break;
+                }
+                case 8:
+                {
+                    unsigned char sample1 = 0;
+                    unsigned char sample2 = 0;
+
+                    if (i < wave1.frameCount)
+                    {
+                        sample1 = ((unsigned char*)wave1.data)[i * wave1.channels + j];
+                    }
+
+                    if (i < wave2.frameCount)
+                    {
+                        sample2 = ((unsigned char*)wave2.data)[i * wave2.channels + j];
+                    }
+
+                    ((unsigned char*)mixedWave.data)[i * mixedWave.channels + j] = sample1 + sample2;
+
+                    break;
+                }
+            }
+        }
+    }
+
+    return mixedWave;
 }
