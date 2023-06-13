@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-Wall -Wextra -pedantic -std=c++11
+CXXFLAGS=-Wall -Wextra -pedantic -std=c++11 -g
 LDFLAGS=-Llibs/raylib/lib -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
 INCLUDES=-Ilibs/raylib/include -Ilibs/imgui
 
